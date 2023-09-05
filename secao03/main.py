@@ -1,6 +1,6 @@
 from fastapi import FastAPI, status, HTTPException, Response, Path, Query, Header, Depends
-from typing import Optional, Any
-from models import Curso
+from typing import Optional, Any, Dict, List
+from models import Curso, cursos
 from time import sleep
 
 def fake_db():
@@ -11,27 +11,19 @@ def fake_db():
         print('Fechando conexão com Banco de dados...')
         sleep(0.5)
 
-app = FastAPI()
+app = FastAPI(title="API de cursos da Geek University", version='0.0.1', description="Uma API para estudo do FastAPI")
 
-cursos = {
-    1: {
-        "titulo": "Programação para Leigos",
-        "aulas": 112,
-        "horas": 58
-    },
-    2: {
-        "titulo": "Algoritmos e Lógica de Programação",
-        "aulas": 87,
-        "horas": 67
-    },
-}
-
-@app.get('/cursos')
+@app.get('/cursos', 
+        description='Retorna todos os cursos ou uma lista vazia.', 
+        summary='Retorna todos os cursos', response_model=List[Curso], 
+        response_description='Cursos encontrados com sucesso')
 async def get_cursos(db: Any = Depends(fake_db)):
     return cursos
 
 @app.get('/cursos/{curso_id}')
-async def get_curso(curso_id :int = Path(title='ID do curso', description=f'Deve estar entre 1 e 3', gt=0, lt=4), db: Any = Depends(fake_db)):
+async def get_curso(curso_id :int = Path(title='ID do curso', 
+                                        description=f'Deve estar entre 1 e 3', gt=0, lt=4), 
+                                        db: Any = Depends(fake_db)):
     try:
         curso = cursos[curso_id]
         curso.update({"id": curso_id})
@@ -39,7 +31,7 @@ async def get_curso(curso_id :int = Path(title='ID do curso', description=f'Deve
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Curso não encontrado")
     
-@app.post('/cursos', status_code=status.HTTP_201_CREATED)
+@app.post('/cursos', status_code=status.HTTP_201_CREATED, response_model=Curso)
 async def post_curso(curso: Curso, db: Any = Depends(fake_db)):
     next_id: int = len(cursos) + 1
     cursos[next_id] = curso
