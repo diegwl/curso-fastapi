@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     Configurações gerais usadas na aplicação
     """
     API_V1_STR: str = '/api/v1'
-    DB_URL: str = "postgresql+asyncpg://diego:diego@localhost:5432/faculdade"
+    DB_URL: str = "postgresql+asyncpg://diegwl:Diego02071004castan@localhost:5432/faculdade"
     DBBaseModel: ClassVar = declarative_base()
 
     class Config:
