@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.exc import IntegrityError
 
 from models.usuario_model import UsuarioModel
 from schemas.usuario_schema import UsuarioSchemaBase, UsuarioSchemaCreate, UsuarioSchemaUp, UsuarioSchemaArtigos
@@ -24,14 +25,17 @@ def get_logado(usuario_logado: UsuarioModel = Depends(get_current_user)):
 # POST / Signup
 @router.post('/signup', status_code=status.HTTP_201_CREATED, response_model=UsuarioSchemaBase)
 async def post_usuario(usuario: UsuarioSchemaCreate, db: AsyncSession = Depends(get_session)):
-    novo_usuario: UsuarioModel = UsuarioModel(nome=usuario.nome, sobrenome=usuario.sobrenome, email=usuario.email, senha=gerar_hash_senha(usuario.senha))
+    novo_usuario: UsuarioModel = UsuarioModel(nome=usuario.nome, sobrenome=usuario.sobrenome, email=usuario.email, senha=gerar_hash_senha(usuario.senha), eh_admin=usuario.eh_admin)
     
     async with db as session:
-        session.add(novo_usuario)
-        await session.commit()
+        try:
+            session.add(novo_usuario)
+            await session.commit()
         
-        return novo_usuario
-    
+            return novo_usuario
+        except IntegrityError:
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Já existe um usuário com esse email cadastrado")
+
 # GET Usuarios
 @router.get('/', response_model=List[UsuarioSchemaBase])
 async def get_usuarios(db: AsyncSession = Depends(get_session)):
@@ -57,35 +61,37 @@ async def get_usuario(usuario_id: int, db: AsyncSession = Depends(get_session)):
     
 # PUT Usuario
 @router.put('/{usuario_id}', response_model=UsuarioSchemaBase, status_code=status.HTTP_202_ACCEPTED)
-async def put_usuario(usuario_id: int, usuario: UsuarioSchemaUp, db: AsyncSession = Depends(get_session),  usuario_logado: UsuarioModel = Depends(get_current_user)):
+async def put_usuario(usuario_id: int, usuario: UsuarioSchemaUp, db: AsyncSession = Depends(get_session)):
     async with db as session:
-        query = select(UsuarioModel).filter(UsuarioModel.id == usuario_id).filter(UsuarioModel.id == usuario_logado)
+        query = select(UsuarioModel).filter(UsuarioModel.id == usuario_id)
         result = await session.execute(query)
         usuario_up: UsuarioSchemaBase = result.scalars().unique().one_or_none()
-        
-    if usuario_up:
-        if usuario.nome:
-            usuario_up.nome = usuario.nome
-        if usuario.sobrenome:
-            usuario_up.sobrenome = usuario.sobrenome
-        if usuario.email:
-            usuario_up.email = usuario.email
-        if usuario.eh_admin:
-            usuario_up.eh_admin = usuario.eh_admin
-        if usuario.senha:
-            usuario_up.senha = gerar_hash_senha(usuario.senha)
-        
-        await session.commit()
-        
-        return usuario_up
-    else:
-        raise HTTPException(detail='Usuário não encontrado.', status_code=status.HTTP_404_NOT_FOUND)
+
+        if usuario_up:
+            if usuario.nome:
+                usuario_up.nome = usuario.nome
+            if usuario.sobrenome:
+                usuario_up.sobrenome = usuario.sobrenome
+            if usuario.email:
+                usuario_up.email = usuario.email
+            if usuario.eh_admin:
+                usuario_up.eh_admin = usuario.eh_admin
+            if usuario.senha:
+                usuario_up.senha = gerar_hash_senha(usuario.senha)
+
+            await session.commit()
+
+            return usuario_up
+        else:
+            raise HTTPException(detail='Usuário não encontrado.',
+                                status_code=status.HTTP_404_NOT_FOUND)
+
 
 # DELETE Usuario
 @router.delete('/{usuario_id}', status_code=status.HTTP_204_NO_CONTENT)
 async def delete_usuario(usuario_id: int, db: AsyncSession = Depends(get_session), usuario_logado: UsuarioModel = Depends(get_current_user)):
     async with db as session:
-        query = select(UsuarioModel).filter(UsuarioModel.id == usuario_id).filter(UsuarioModel.id == usuario_logado)
+        query = select(UsuarioModel).filter(UsuarioModel.id == usuario_id).filter(UsuarioModel.id == usuario_logado.id)
         result = await session.execute(query)
         usuario_del: UsuarioSchemaBase = result.scalars().unique().one_or_none()
         
