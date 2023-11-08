@@ -1,3 +1,8 @@
+# para teste
+#import sys
+#default_path = "C:\\Users\\lod7ca\\Desktop\\curso-fastapi\\ets_mysql"
+#sys.path.append(default_path)
+
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine, AsyncSession
 

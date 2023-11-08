@@ -1,0 +1,2 @@
+from models.organizacao_model import OrganizacaoModel
+from models.personagem_model import PersonagemModel
