@@ -9,7 +9,7 @@ class PersonagemModel(settings.DBBaseModel):
 
     id: int = Column(Integer, primary_key=True, autoincrement=True)
     nome: str = Column(String(100))
-    nacionalidade: int = Column(Integer)
+    nacionalidade: str = Column(String(100))
     nascimento: date = Column(DATE)
     genero: str = Column(String(100))
     organizacao_id: int = Column(Integer, ForeignKey('organizacoes.id'))
